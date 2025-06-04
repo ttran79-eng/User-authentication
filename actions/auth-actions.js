@@ -1,4 +1,7 @@
 "use server";
+import { createUser } from "@/lib/user";
+import { hashUserPassword } from "@/lib/hash";
+import { redirect } from "next/navigation";
 
 export async function signup( prevState,formData){
     const email = formData.get("email");
@@ -18,11 +21,29 @@ export async function signup( prevState,formData){
         errors.password = "Password must be atleast 8 characters long."
     }
 
+
     if(Object.keys(errors).length > 0){
         return{
             errors: errors
         }
     }
 
-    // store it in the dabatase (create a new user)
+    // store it in the dabatase (create a new user)//hashing password for security
+    const hashedPassword = hashUserPassword(password);
+
+    try{
+    createUser(email, hashedPassword);
+    } catch (error) {
+        if(error.code === 'SQLITE_CONSTRAINT_UNIQUE'){
+            return {
+                errors:{
+                    email: 'It seems that this email is already registered. Use a different email'
+                }
+            };
+        }
+        throw error; // re-throw the error if it's not a constraint violation
+    }
+
+    redirect('/training');
+
 }
